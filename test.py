@@ -4,7 +4,7 @@ if __name__ == '__main__':
     tasks = []
     for dataset in ["ghsi"]:
         for algorithm in ["fsdr"]:
-            for size in [2,5,10,20]:
+            for size in [2]:
                 tasks.append(
                     {
                         "dataset": dataset,

@@ -36,11 +36,12 @@ class ModelANN(nn.Module):
         optimizer = self.create_optimizer()
         X = torch.tensor(X, dtype=torch.float32).to(self.device)
         y = torch.tensor(y, dtype=torch.float32).type(torch.LongTensor).to(self.device)
-        loss = torch.tensor(-1)
+        loss = torch.tensor(-1.1)
         for epoch in range(self.epoch):
             if epoch%50 == 0:
-                print(f"{epoch}: Loss {round(loss.item(),5)} "
-                      f"Prediction {round(self.prediction_accuracy(X,y, False),5)}")
+                acc,_ = self.prediction_accuracy(X,y, False)
+                print(f"{epoch}: Loss {loss.item()} "
+                      f"Prediction {round(acc,5)}")
 
             y_hat = self(X)
             loss = self.criterion(y_hat, y)
@@ -56,13 +57,14 @@ class ModelANN(nn.Module):
         _, predicted = torch.max(y, 1)
         if temp:
             self.train()
-        return predicted.detach().cpu().numpy()
+        return predicted, y
 
     def prediction_accuracy(self, X, y_true, temp=False):
-        if not isinstance(y_true, np.ndarray):
-            y_true = y_true.detach().cpu().numpy()
         total = y_true.shape[0]
-        predicted = self.predict(X, temp)
+        predicted,y_hat = self.predict(X, temp)
+        if not torch.is_tensor(y_true):
+            y_true = torch.tensor(y_true, dtype=torch.float32).type(torch.LongTensor).to(self.device)
         correct = (predicted == y_true).sum()
-        return correct/total
+        loss = self.criterion(y_hat, y_true)
+        return (correct/total).item(), loss.item()
 

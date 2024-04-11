@@ -77,15 +77,10 @@ class Evaluator:
         metric_evaluator = my_utils.get_metric_evaluator(algorithm_name, X_train)
         metric_evaluator.fit(X_train, y_train)
 
-        y_pred = metric_evaluator.predict(X_train)
-        accuracy_train = round(accuracy_score(y_train, y_pred), 2)
-        rmse_train = round(math.sqrt(mean_squared_error(y_train, y_pred)), 2)
+        train_accuracy, train_rmse = metric_evaluator.prediction_accuracy(X_train, y_train)
+        test_accuracy, test_rmse = metric_evaluator.prediction_accuracy(X_test, y_test)
 
-        y_pred = metric_evaluator.predict(X_test)
-        accuracy_test = round(accuracy_score(y_test, y_pred), 2)
-        rmse_test = round(math.sqrt(mean_squared_error(y_test, y_pred)), 2)
+        print(f"train_accuracy {train_accuracy}; test_accuracy {test_accuracy}")
+        print(f"train_rmse {train_rmse}; test_rmse {test_rmse}")
 
-        print(f"accuracy train {accuracy_train}")
-        print(f"accuracy test {accuracy_test}")
-
-        return accuracy_train, rmse_train, accuracy_test, rmse_test
+        return train_accuracy, train_rmse, test_accuracy, test_rmse

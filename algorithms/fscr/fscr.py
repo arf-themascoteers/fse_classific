@@ -5,20 +5,20 @@ import torch
 from algorithms.fscr.ann import ANN
 from datetime import datetime
 import os
-import my_utils
+import torch.nn as nn
+import numpy as np
 
 
 class FSCR:
-    def __init__(self, rows, target_feature_size, sigmoid=True):
-        self.sigmoid = sigmoid
+    def __init__(self, target_feature_size):
         self.target_feature_size = target_feature_size
-        self.lr = my_utils.get_lr(rows, target_feature_size)
-        self.model = ANN(rows, self.target_feature_size, sigmoid)
+        self.model = ANN(self.target_feature_size)
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.model.to(self.device)
-        self.criterion = torch.nn.MSELoss(reduction='mean')
-        self.epochs = 350
-        self.csv_file = os.path.join("results", f"fscr-{sigmoid}-{target_feature_size}-{str(datetime.now().timestamp()).replace('.','')}.csv")
+        self.epoch = 10000
+        self.lr = 0.001
+        self.criterion = nn.CrossEntropyLoss()
+        self.csv_file = os.path.join("results", f"fscr-{target_feature_size}-{str(datetime.now().timestamp()).replace('.','')}.csv")
         self.original_feature_size = None
         self.start_time = datetime.now()
 
@@ -41,9 +41,9 @@ class FSCR:
         spline = get_splines(X, self.device)
         X_validation = torch.tensor(X_validation, dtype=torch.float32).to(self.device)
         spline_validation = get_splines(X_validation, self.device)
-        y = torch.tensor(y, dtype=torch.float32).to(self.device)
+        y = torch.tensor(y, dtype=torch.float32).type(torch.LongTensor).to(self.device)
         y_validation = torch.tensor(y_validation, dtype=torch.float32).to(self.device)
-        for epoch in range(self.epochs):
+        for epoch in range(self.epoch):
             y_hat = self.model(spline, row_size)
             loss = self.criterion(y_hat, y)
             for machine in self.model.machines:
@@ -59,16 +59,16 @@ class FSCR:
     def evaluate(self,spline,y,size):
         self.model.eval()
         y_hat = self.model(spline, size)
-        y_hat = y_hat.reshape(-1)
-        y_hat = y_hat.detach().cpu().numpy()
+        _, predicted = torch.max(y_hat, 1)
+        total = y.shape[0]
+        predicted = predicted.detach().cpu().numpy()
         y = y.detach().cpu().numpy()
-        r2 = r2_score(y, y_hat)
-        rmse = math.sqrt(mean_squared_error(y, y_hat))
+        correct = (predicted == y).sum()
         self.model.train()
-        return max(r2,0), rmse
+        return correct/total
 
     def write_columns(self):
-        columns = ["epoch","train_r2","validation_r2","train_rmse","validation_rmse","time"]
+        columns = ["epoch","train_accuracy","validation_accuracy","time"]
         for index,p in enumerate(self.model.get_indices()):
             columns.append(f"band_{index+1}")
         print("".join([c.ljust(20) for c in columns]))
@@ -77,9 +77,9 @@ class FSCR:
             file.write("\n")
 
     def dump_row(self, epoch, spline, y, spline_test, y_test, row_size, row_test_size):
-        train_r2, train_rmse = self.evaluate(spline, y, row_size)
-        test_r2, test_rmse = self.evaluate(spline_test, y_test, row_test_size)
-        row = [train_r2, test_r2, train_rmse, test_rmse]
+        train_accuracy = self.evaluate(spline, y, row_size)
+        test_accuracy = self.evaluate(spline_test, y_test, row_test_size)
+        row = [train_accuracy, test_accuracy]
         row = [round(r,5) for r in row]
         row = [epoch] + row + [self.get_elapsed_time()]
         for p in self.model.get_indices():
@@ -91,8 +91,6 @@ class FSCR:
 
     def indexify_raw_index(self, raw_index):
         multiplier = self.original_feature_size
-        if not self.sigmoid:
-            multiplier = multiplier-1
         return round(raw_index.item() * multiplier)
 
     def get_indices(self):

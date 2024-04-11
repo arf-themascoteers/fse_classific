@@ -19,8 +19,8 @@ class ModelANN(nn.Module):
             nn.LeakyReLU(),
             nn.Linear(10, 5)
         )
-        self.epoch = my_utils.get_epoch(rows, self.target_feature_size)
-        self.lr = my_utils.get_lr(rows, self.target_feature_size)
+        self.epoch = 10000
+        self.lr = 0.001
         self.criterion = nn.CrossEntropyLoss()
         self.to(self.device)
 
@@ -48,10 +48,10 @@ class ModelANN(nn.Module):
             optimizer.step()
             optimizer.zero_grad()
 
-
     def predict(self, X, temp=False):
         self.eval()
-        X = torch.tensor(X, dtype=torch.float32).to(self.device)
+        if not torch.is_tensor(X):
+            X = torch.tensor(X, dtype=torch.float32).to(self.device)
         y = self(X)
         _, predicted = torch.max(y, 1)
         if temp:

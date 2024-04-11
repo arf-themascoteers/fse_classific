@@ -14,9 +14,9 @@ class DSManager:
         self.y_column = DSManager.get_y_column(self.dataset)
         df = df[self.X_columns+[self.y_column]]
         df = df.sample(frac=1)
-        df.iloc[:,1:] = DSManager._normalize(df.iloc[:,1:])
         df['crop'], class_labels = pd.factorize(df['crop'])
         self.full_data = df.to_numpy()
+        self.full_data[:,1:] = DSManager._normalize(self.full_data[:,1:])
 
     def __repr__(self):
         return self.get_name()

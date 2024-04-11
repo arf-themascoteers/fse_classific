@@ -49,7 +49,10 @@ class ModelANN(nn.Module):
         self.eval()
         X = torch.tensor(X, dtype=torch.float32).to(self.device)
         y = self(X)
+        _, predicted = torch.max(y, 1)
         if temp:
             self.train()
-        return y.detach().cpu().numpy()
+        total = y.shape[0]
+        correct = (predicted == y).sum().item()
+        return round(correct/total,2)
 

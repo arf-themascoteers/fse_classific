@@ -2,6 +2,7 @@ import torch.nn as nn
 import torch
 import my_utils
 from sklearn.metrics import r2_score
+import numpy as np
 
 
 class ModelANN(nn.Module):
@@ -24,7 +25,7 @@ class ModelANN(nn.Module):
         self.to(self.device)
 
     def forward(self, X):
-        return self.linear(X.to(self.device)).reshape(-1)
+        return self.linear(X)
 
     def create_optimizer(self):
         weight_decay = self.lr/10
@@ -34,16 +35,19 @@ class ModelANN(nn.Module):
         self.train()
         optimizer = self.create_optimizer()
         X = torch.tensor(X, dtype=torch.float32).to(self.device)
-        y = torch.tensor(y, dtype=torch.float32).to(self.device)
+        y = torch.tensor(y, dtype=torch.float32).type(torch.LongTensor).to(self.device)
+        loss = torch.tensor(-1)
         for epoch in range(self.epoch):
+            if epoch%50 == 0:
+                print(f"{epoch}: Loss {round(loss.item(),5)} "
+                      f"Prediction {round(self.prediction_accuracy(X,y, False),5)}")
+
             y_hat = self(X)
             loss = self.criterion(y_hat, y)
             loss.backward()
             optimizer.step()
             optimizer.zero_grad()
-            if epoch%50 == 0:
-                print(f"{epoch}: {round(loss.item(),5)} "
-                      f"{round(r2_score(y.detach().cpu().numpy(), self.predict(X.detach().cpu().numpy(), False)),5)}")
+
 
     def predict(self, X, temp=False):
         self.eval()
@@ -52,7 +56,13 @@ class ModelANN(nn.Module):
         _, predicted = torch.max(y, 1)
         if temp:
             self.train()
-        total = y.shape[0]
-        correct = (predicted == y).sum().item()
-        return round(correct/total,2)
+        return predicted.detach().cpu().numpy()
+
+    def prediction_accuracy(self, X, y_true, temp=False):
+        if not isinstance(y_true, np.ndarray):
+            y_true = y_true.detach().cpu().numpy()
+        total = y_true.shape[0]
+        predicted = self.predict(X, temp)
+        correct = (predicted == y_true).sum()
+        return correct/total
 

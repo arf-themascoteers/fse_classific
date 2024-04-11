@@ -1,5 +1,4 @@
 from sklearn.linear_model import LinearRegression
-from model_ann import ModelANN
 import torch.nn as nn
 from sklearn.ensemble import RandomForestRegressor
 
@@ -46,9 +45,6 @@ def get_hidden(rows, feature_size):
         return get_hidden_for_full(feature_size)
     return get_hidden_for_short(feature_size)
 
-
-def get_ann(X):
-    return ModelANN(X)
 
 
 def get_metric_evaluator_for_traditional(X):

@@ -1,6 +1,6 @@
 from sklearn.linear_model import LinearRegression
 import torch.nn as nn
-from sklearn.ensemble import RandomForestRegressor
+from sklearn.ensemble import RandomForestClassifier
 
 
 def get_hidden_for_full(feature_size):
@@ -46,17 +46,8 @@ def get_hidden(rows, feature_size):
     return get_hidden_for_short(feature_size)
 
 
-
-def get_metric_evaluator_for_traditional(X):
-    return get_ann(X)
-
-
-def get_metric_evaluator_for_fscr(X):
-    return get_ann(X)
-
-
 def get_metric_evaluator(algorithm_name, X):
-    return RandomForestRegressor()
+    return RandomForestClassifier()
 
 
 def get_internal_model():

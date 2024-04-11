@@ -1,3 +1,5 @@
+import numpy as np
+
 from ds_manager import DSManager
 from datetime import datetime
 import os
@@ -6,6 +8,7 @@ from sklearn.metrics import r2_score, mean_squared_error
 import math
 import pandas as pd
 import my_utils
+from sklearn.metrics import accuracy_score
 
 
 class Evaluator:
@@ -15,8 +18,7 @@ class Evaluator:
         if not os.path.exists(self.filename):
             with open(self.filename, 'w') as file:
                 file.write("algorithm,rows,columns,time,target_size,final_size,"
-                           "accuracy_train,accuracy_test,"
-                           "rmse_train,rmse_test,"
+                           "accuracy,rmse,"
                            "selected_features\n")
 
     def evaluate(self):
@@ -29,19 +31,14 @@ class Evaluator:
             if self.is_done(algorithm_name, dataset, target_feature_size):
                 print("Done already. Skipping.")
                 continue
-            elapsed_time, accuracy_original, rmse_original, \
-                accuracy_reduced_train, rmse_reduced_train, \
-                accuracy_reduced_test, rmse_reduced_test, \
-                final_indices, selected_features = \
+            elapsed_time, accuracy, rmse, final_indices, selected_features = \
                 self.do_algorithm(algorithm_name, dataset, target_feature_size)
-
 
             with open(self.filename, 'a') as file:
                 file.write(
                     f"{algorithm_name},{dataset.count_rows()},"
                     f"{dataset.count_features()},{round(elapsed_time,2)},{target_feature_size},{final_indices},"
-                    f"{accuracy_reduced_train},{accuracy_reduced_test},"
-                    f"{rmse_reduced_train},{rmse_reduced_test},"
+                    f"{accuracy:.2f},{rmse:.2f},"
                     f"{';'.join(str(i) for i in selected_features)}\n")
 
     def is_done(self,algorithm_name,dataset,target_feature_size):
@@ -66,21 +63,21 @@ class Evaluator:
         elapsed_time = (datetime.now() - start_time).total_seconds()
         X_train_reduced = algorithm.transform(X_train)
         X_test_reduced = algorithm.transform(X_test)
-        accuracy_reduced_train, rmse_reduced_train, accuracy_reduced_test, rmse_reduced_test = \
+        accuracy, rmse = \
             Evaluator.get_metrics(algorithm_name, X_train_reduced, y_train, X_test_reduced, y_test)
-        return elapsed_time, 0, 0, \
-            accuracy_reduced_train, rmse_reduced_train, \
-            accuracy_reduced_test, rmse_reduced_test, X_test_reduced.shape[1], selected_features
+        return elapsed_time, accuracy, rmse, X_test_reduced.shape[1], selected_features
 
     @staticmethod
     def get_metrics(algorithm_name, X_train, y_train, X_test, y_test):
         metric_evaluator = my_utils.get_metric_evaluator(algorithm_name, X_train)
         metric_evaluator.fit(X_train, y_train)
 
-        train_accuracy, train_rmse = metric_evaluator.prediction_accuracy(X_train, y_train)
-        test_accuracy, test_rmse = metric_evaluator.prediction_accuracy(X_test, y_test)
+        metric_evaluator.fit(X_train, y_train)
+        y_pred = metric_evaluator.predict(X_test)
+        accuracy = accuracy_score(y_test, y_pred)
+        rmse = np.sqrt(accuracy_score(y_test, y_pred))
 
-        print(f"train_accuracy {train_accuracy}; test_accuracy {test_accuracy}")
-        print(f"train_rmse {train_rmse}; test_rmse {test_rmse}")
+        print(f"accuracy {accuracy}")
+        print(f"rmse {rmse}")
 
-        return train_accuracy, train_rmse, test_accuracy, test_rmse
+        return accuracy, rmse

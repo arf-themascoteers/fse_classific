@@ -3,8 +3,8 @@ from evaluator import Evaluator
 if __name__ == '__main__':
     tasks = []
     for dataset in ["ghsi"]:
-        for size in [2,5,10,20,30]:
-            for algorithm in ["fsdr","mi","lasso"]:
+        for algorithm in ["mi"]:
+            for size in [2]:
                 tasks.append(
                     {
                         "dataset": dataset,
